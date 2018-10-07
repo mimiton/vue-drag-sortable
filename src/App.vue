@@ -17,8 +17,16 @@
         </sortable>
       </div>
     </div>
-    <div class="pannel" style="width: auto;">
+    <div class="pannel" style="width: 430px;">
       <h1>Free drag & Horizontal replace</h1>
+      <div class="list row">
+        <sortable v-for="(item, index) in listData" v-model="dragData3" :key="item" :index="index" @sortend="sortend($event, listData)" replace-direction="horizontal">
+          Item {{ item }}
+        </sortable>
+      </div>
+    </div>
+    <div class="pannel" style="width: 2200px;">
+      <h1>Horizontal drag & Horizontal replace</h1>
       <div class="list row">
         <sortable v-for="(item, index) in listData" v-model="dragData3" :key="item" :index="index" @sortend="sortend($event, listData)" drag-direction="horizontal" replace-direction="horizontal">
           Item {{ item }}
@@ -69,15 +77,22 @@ export default {
 }
 .pannel {
   display: inline-block;
+  vertical-align: top;
   width: 160px;
 }
 .list {
   position: relative;
+  height: 400px;
+  overflow: auto;
 }
 .list > * {
   width: 100px;
   height: 40px;
-  border: 1px solid;
+  background: white;
+  border: 1px solid #f0f0f0;
+}
+.list > .dragging {
+  box-shadow: 0 2px 10px 0 rgba(0,0,0,.2);
 }
 .list.row > * {
   display: inline-block;

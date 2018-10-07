@@ -26,6 +26,12 @@ export default {
       startTop: 0,
       offsetX: 0,
       offsetY: 0,
+      bound: {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0
+      },
       hoveredMargin: {
         top: 0,
         right: 0,
@@ -137,6 +143,10 @@ export default {
       const boundRight = boundLeft + offsetWidth;
       const boundBottom = boundTop + offsetHeight;
 
+      this.bound.top = boundTop;
+      this.bound.right = boundRight;
+      this.bound.bottom = boundBottom;
+      this.bound.left = boundLeft;
 
 
 
@@ -146,7 +156,7 @@ export default {
           right: boundRight,
           bottom: boundBottom,
           left: boundLeft
-        }, 0);
+        });
 
         if (overlapping) {
           this.overlapping = overlapping;
@@ -184,39 +194,31 @@ export default {
         oldIndex: this.value.oldIndex
       });
     },
-    judgeOverlap (rectArea_1, rectArea_2, threshold) {
-      let { top, right, left, bottom } = rectArea_1;
+    judgeOverlap (rectArea_1, rectArea_2) {
+      return calcArea(rectArea_1, rectArea_2) > 0;
 
-      if (threshold < 1) {
-        const vertical = (bottom - top) * parseFloat(threshold);
-        const horizontal = (right - left) * parseFloat(threshold);
-        top += vertical;
-        right -= horizontal;
-        bottom -= vertical;
-        left += horizontal;
-      }
-      else if (threshold) {
-        top += parseInt(threshold);
-        right -= parseInt(threshold);
-        bottom -= parseInt(threshold);
-        left += parseInt(threshold);
-      }
+      function calcArea(rect1, rect2) {
+        const t1 = rect1.top, r1 = rect1.right, b1 = rect1.bottom, l1 = rect1.left;
+        const t2 = rect2.top, r2 = rect2.right, b2 = rect2.bottom, l2 = rect2.left;
+        const top = max(t1, t2);
+        const right = min(r1,r2);
+        const bottom = min(b1, b2);
+        const left = max(l1, l2);
+        const width = right - left;
+        const height = bottom - top;
+        if (width <= 0 || height <= 0) {
+          return 0;
+        }
+        else {
+          return width * height;
+        }
 
-      const point_1 = { x: left, y: top };
-      const point_2 = { x: right, y: top };
-      const point_3 = { x: left, y: bottom };
-      const point_4 = { x: right, y: bottom };
-
-      return pointInArea(point_1, rectArea_2) ||
-          pointInArea(point_2, rectArea_2) ||
-          pointInArea(point_3, rectArea_2) ||
-          pointInArea(point_4, rectArea_2);
-
-      function pointInArea(point, area) {
-        const { x, y } = point;
-        const { top, right, bottom, left } = area;
-
-        return x > left && x < right && y > top && y < bottom;
+        function min(arg1, arg2) {
+          return arg1 < arg2 ? arg1 : arg2;
+        }
+        function max(arg1, arg2) {
+          return arg1 > arg2 ? arg1 : arg2;
+        }
       }
     },
     onMouseDown (e) {
