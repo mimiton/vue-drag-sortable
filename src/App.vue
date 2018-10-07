@@ -1,4 +1,3 @@
-<script src="../../Zine-electron/app/src/vuex/store.js"></script>
 <template>
   <div class="app">
     <div class="pannel">

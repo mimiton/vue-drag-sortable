@@ -2,17 +2,59 @@
 
 > A vue dragging sortable component
 
-## Build Setup
+## Install from NPM
 
 ``` bash
-# install dependencies
-npm install
+$ npm install --save vue-drag-sortable
+```
 
-# serve with hot reload at localhost:8080
-npm run dev
+### Usage
+``` vue
+<template>
+  <div class="list">
+    <sortable v-for="(item, index) in listData" v-model="dragData" :key="item" :index="index" @sortend="sortend($event, listData)">
+      Item {{ item }}
+    </sortable>
+  </div>
+</template>
 
-# build for production with minification
-npm run build
+<script>
+import Sortable from 'vue-drag-sortable'
+
+export default {
+  comonents: {
+    Sortable
+  },
+  data () {
+    return {
+      dragData: {},
+      listData: [1,2,3,4,5,6,7,8,9,10]
+    };
+  },
+  methods: {
+    sortend (e, list) {
+      const { oldIndex, newIndex } = e;
+      this.rearrange(list, oldIndex, newIndex);
+    },
+    rearrange (array, oldIndex, newIndex) {
+      if (oldIndex > newIndex) {
+        array.splice(newIndex, 0, array[oldIndex]);
+        array.splice(oldIndex + 1, 1);
+      }
+      else {
+        array.splice(newIndex + 1, 0, array[oldIndex]);
+        array.splice(oldIndex, 1);
+      }
+    }
+  }
+}
+</script>
+
+<style>
+.list {
+  position: relative;
+}
+</style>
 ```
 
 For detailed explanation on how things work, consult the [docs for vue-loader](http://vuejs.github.io/vue-loader).

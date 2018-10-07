@@ -9,6 +9,7 @@ var output = {
   filename: 'build.js'
 };
 if (ENV_PROD) {
+  output.filename = 'vue-drag-sortable.js';
   output.library = 'DragSortable';
   output.libraryTarget = 'umd';
 }
