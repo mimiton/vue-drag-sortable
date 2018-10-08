@@ -77,29 +77,33 @@ export default {
       }
     },
     value (curVal) {
-      const root = this.$el;
-      this.reversing = false;
+      const self = this;
+      const root = self.$el;
+      self.reversing = false;
 
+      const { replaceDirection } = self;
       const { offsetTop, offsetLeft, offsetWidth, offsetHeight } = root;
-      const { _start, _end, self, top, right, bottom, left, oldIndex } = curVal;
+      const { _start, _end, draggingItem, top, right, bottom, left, oldIndex } = curVal;
 
       if (_end) {
-        const _this = this;
-        _this.reversing = true;
+        self.reversing = true;
 
-        if (_this.overlapping) {
-          self.offsetY = offsetTop - ((!this.replaceDirection || this.replaceDirection === 'vertical') ? (bottom - top) : 0) - self.startTop;
-          self.offsetX = offsetLeft - (this.replaceDirection === 'horizontal' ? (right - left) : 0) - self.startLeft;
+        const isLastItem = !overlappingVue && self === draggingItem;
+        if (self.overlapping || isLastItem) {
+          const revertY = (!isLastItem && (!replaceDirection || replaceDirection === 'vertical')) ? (bottom - top) : 0;
+          const revertX = (!isLastItem && replaceDirection === 'horizontal') ? (right - left) : 0;
+          draggingItem.offsetY = offsetTop - revertY - draggingItem.startTop;
+          draggingItem.offsetX = offsetLeft - revertX - draggingItem.startLeft;
 
           setTimeout(function () {
-            self.dragging = false;
-            _this.hoveredMargin = null;
-            _this.overlapping = false;
+            draggingItem.dragging = false;
+            self.hoveredMargin = null;
+            self.overlapping = false;
             overlappingVue = null;
             const oldIndex = curVal.oldIndex;
-            const newIndex = _this.index - (_this.index < oldIndex ? 0 : 1);
+            const newIndex = self.index - (self.index <= oldIndex ? 0 : 1);
             if (oldIndex !== newIndex) {
-              _this.$emit('sortend', {
+              self.$emit('sortend', {
                 oldIndex,
                 newIndex
               });
@@ -110,9 +114,9 @@ export default {
         return;
       }
 
-      if (self === this) {
-        self.$nextTick(function () {
-          self.dragging = true;
+      if (draggingItem === self) {
+        draggingItem.$nextTick(function () {
+          draggingItem.dragging = true;
         });
         const list = root.parentNode;
         list.style.overflow = 'hidden';
@@ -120,20 +124,20 @@ export default {
         const listHeight = list.offsetHeight;
         if (top - scrollTop < 20) {
           list.scrollTop -= 10;
-          self.startTop += list.scrollTop - scrollTop;
+          draggingItem.startTop += list.scrollTop - scrollTop;
         }
         else if (bottom - scrollTop > listHeight - 20) {
           list.scrollTop += 10;
-          self.startTop += list.scrollTop - scrollTop;
+          draggingItem.startTop += list.scrollTop - scrollTop;
         }
         return
       }
 
       if (_start) {
-        const isNext = this.index === oldIndex + 1;
+        const isNext = self.index === oldIndex + 1;
         if (isNext) {
-          this.reversing = true;
-          this.overlapping = true;
+          self.reversing = true;
+          self.overlapping = true;
         }
         return;
       }
@@ -143,15 +147,15 @@ export default {
       const boundRight = boundLeft + offsetWidth;
       const boundBottom = boundTop + offsetHeight;
 
-      this.bound.top = boundTop;
-      this.bound.right = boundRight;
-      this.bound.bottom = boundBottom;
-      this.bound.left = boundLeft;
+      self.bound.top = boundTop;
+      self.bound.right = boundRight;
+      self.bound.bottom = boundBottom;
+      self.bound.left = boundLeft;
 
 
 
-      if (!this.frozen) {
-        const overlapping = this.judgeOverlap(curVal, {
+      if (!self.frozen) {
+        const overlapping = self.judgeOverlap(curVal, {
           top: boundTop,
           right: boundRight,
           bottom: boundBottom,
@@ -159,7 +163,7 @@ export default {
         });
 
         if (overlapping) {
-          this.overlapping = overlapping;
+          self.overlapping = overlapping;
         }
       }
     }
@@ -276,7 +280,7 @@ export default {
         self.inputTimer = setTimeout(function () {
           self.$emit('input', {
             _start: self.start,
-            self,
+            draggingItem: self,
             top, right, bottom, left,
             oldIndex: self.index
           });
@@ -299,7 +303,7 @@ export default {
         window.removeEventListener('mouseup', mouseupHandler);
         self.$emit('input', {
           _end: true,
-          self,
+          draggingItem: self,
           top, right, bottom, left,
           oldIndex: self.index
         });
