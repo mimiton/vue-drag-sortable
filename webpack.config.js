@@ -2,6 +2,7 @@ var path = require('path')
 var webpack = require('webpack')
 
 var ENV_PROD = process.env.NODE_ENV === 'production';
+var ENV_DEMO = process.env.NODE_ENV === 'demo';
 
 var output = {
   path: path.resolve(__dirname, './dist'),
@@ -65,7 +66,7 @@ module.exports = {
   devtool: '#eval-source-map'
 }
 
-if (ENV_PROD) {
+if (ENV_PROD || ENV_DEMO) {
   module.exports.devtool = '#source-map'
   // http://vue-loader.vuejs.org/en/workflow/production.html
   module.exports.plugins = (module.exports.plugins || []).concat([
