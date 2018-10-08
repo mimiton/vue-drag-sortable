@@ -27,7 +27,7 @@
     <div class="pannel" style="width: 2200px;">
       <h1>Horizontal drag & Horizontal replace</h1>
       <div class="list row">
-        <sortable v-for="(item, index) in listData" v-model="dragData3" :key="item" :index="index" @sortend="sortend($event, listData)" drag-direction="horizontal" replace-direction="horizontal">
+        <sortable v-for="(item, index) in listData" v-model="dragData4" :key="item" :index="index" @sortend="sortend($event, listData)" drag-direction="horizontal" replace-direction="horizontal">
           Item {{ item }}
         </sortable>
       </div>
@@ -48,6 +48,7 @@ export default {
       dragData1: {},
       dragData2: {},
       dragData3: {},
+      dragData4: {},
       listData: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
     }
   },
