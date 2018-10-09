@@ -199,7 +199,10 @@ export default {
       });
     },
     judgeOverlap (rectArea_1, rectArea_2) {
-      return calcArea(rectArea_1, rectArea_2) > 0;
+      const { top, right, bottom, left } = rectArea_2;
+      const targetArea = (bottom - top) * (right - left);
+      const crossArea = calcArea(rectArea_1, rectArea_2);
+      return crossArea / targetArea > 0.25;
 
       function calcArea(rect1, rect2) {
         const t1 = rect1.top, r1 = rect1.right, b1 = rect1.bottom, l1 = rect1.left;
@@ -273,8 +276,8 @@ export default {
           offsetY = -self.startTop;
         }
 
-        self.offsetX = offsetX;
-        self.offsetY = offsetY;
+        self.offsetX = self.dragDirection === 'vertical' ? 0 : offsetX;
+        self.offsetY = self.dragDirection === 'horizontal' ? 0 : offsetY;
 
         clearTimeout(self.inputTimer);
         self.inputTimer = setTimeout(function () {
