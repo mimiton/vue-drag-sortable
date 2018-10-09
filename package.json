@@ -1,15 +1,16 @@
 {
   "name": "vue-drag-sortable",
   "description": "A vue dragging sortable component",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "author": "xiaozheen <xiaozheen@qq.com>",
   "license": "MIT",
   "keywords": [
     "vue",
-    "vuejs",
+    "sort",
+    "sortable",
     "drag",
     "drop",
-    "sortable",
+    "vuejs",
     "list"
   ],
   "main": "./dist/vue-drag-sortable.js",
