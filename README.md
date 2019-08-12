@@ -21,7 +21,7 @@ $ npm install --save vue-drag-sortable
       @sortend="sortend($event, listData)" <!-- (Optional) Event triggered when sort end -->
       @sort="sorting" <!-- (Optional) Event triggered when sorting -->
 
-      @click.native="click"
+      @real-click="click"
     >
       Item {{ item }}
     </sortable>

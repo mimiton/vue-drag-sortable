@@ -1,7 +1,7 @@
 {
   "name": "vue-drag-sortable",
   "description": "A vue dragging sortable component",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "author": "xiaozheen <xiaozheen@qq.com>",
   "license": "MIT",
   "keywords": [

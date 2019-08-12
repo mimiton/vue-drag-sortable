@@ -3,7 +3,7 @@
     :class="{ dragging, reversing, anim: value.status == 'moving' }"
     :style="[marginStyle, rootStyle]"
     @mousedown="startFn" @touchstart="startFn"
-    @click.capture="onClick"
+    @click="onClick"
     @transitionend="onTransEnd"
   >
     <slot/>
@@ -29,6 +29,7 @@ export default {
   },
   data () {
     return {
+      preventClick: false,
       moveLockCount: 5,
       scrollHeight: 0,
       overlapping: false,
@@ -152,12 +153,9 @@ export default {
   },
   methods: {
     onClick (e) {
-      const { dragData } = this
-      if (dragData.moved) {
-        e.stopPropagation()
-        e.preventDefault()
+      if (!this.preventClick) {
+        this.$emit('real-click', e)
       }
-      dragData.moved = false
     },
     onTransEnd () {
       if (this.reversing) {
@@ -239,6 +237,7 @@ export default {
     startFn (e) {
       const { type } = e || {}
       const isTouch = type === 'touchstart'
+      this.preventClick = false
 
       const { dragData } = this
       const target = e.touches && e.touches[0] || e
@@ -254,6 +253,7 @@ export default {
       e.preventDefault()
       const target = e.touches && e.touches[0] || e
       const { dragData } = this
+      this.preventClick = true
 
       dragData.pageX = target.pageX
       dragData.pageY = target.pageY
@@ -280,6 +280,7 @@ export default {
       if (dragData.moved) {
         this.releaseHandler()
       }
+      dragData.moved = false
     },
     getDraggingIndex () {
       const { currentIndex } = this.value
