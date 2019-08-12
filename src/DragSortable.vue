@@ -1,321 +1,279 @@
 <template>
   <div class="drag-sortable"
-    :class="{ dragging: dragging, 'reversing': reversing }"
-    :style="rootStyle"
-    @mousedown="onMouseDown"
+    :class="{ dragging, reversing, anim: value.status == 'moving' }"
+    :style="[marginStyle, rootStyle]"
+    @mousedown="startFn" @touchstart="startFn"
+    @transitionend="onTransEnd"
   >
-  <slot/>
+    <slot/>
   </div>
 </template>
 
 <script>
-let overlappingVue;
+let overlappingVue
+let lastIndex = 0
 export default {
-  name: 'DragSortable',
   props: ['value', 'index', 'dragDirection', 'replaceDirection'],
   data () {
     return {
-      frozen: false,
-      start: false,
-      dragging: false,
+      moveLockCount: 5,
+      scrollHeight: 0,
       overlapping: false,
       reversing: false,
-      startX: 0,
-      startY: 0,
-      startLeft: 0,
-      startTop: 0,
-      offsetX: 0,
-      offsetY: 0,
-      bound: {
+      dragging: false,
+      lockAnim: false,
+      position: {
         top: 0,
-        right: 0,
-        bottom: 0,
-        left: 0
+        left: 0,
+        offsetX: 0,
+        offsetY: 0
       },
-      hoveredMargin: {
-        top: 0,
-        right: 0,
-        bottom: 0,
-        left: 0
-      },
-      inputTimer: 0,
-      clickTimer: 0
-    };
-  },
-  computed: {
-    rootStyle ()  {
-      const {
-        dragging, dragDirection, startTop, startLeft,
-        offsetY, offsetX, hoveredMargin
-      } = this;
-      const { top, right, bottom, left } = hoveredMargin || {};
-
-      return {
-        'position': dragging ? 'absolute': '',
-        'z-index': dragging ? 1 : '',
-        'top': dragging && (dragDirection !== 'horizontal') ? ((startTop + offsetY) + 'px') : '',
-        'left': dragging && (dragDirection !== 'vertical') ? ((startLeft + offsetX) + 'px') : '',
-        'margin-top': top ? (top + 'px') : '',
-        'margin-right': right ? (right + 'px') : '',
-        'margin-bottom': bottom ? (bottom + 'px') : '',
-        'margin-left': left ? (left + 'px') : ''
+      dragData: {
+        startX: 0,
+        startY: 0,
+        pageX: 0,
+        pageY: 0,
+        offsetX: 0,
+        offsetY: 0
       }
     }
   },
-  watch: {
-    overlapping (curVal, oldVal) {
-      if (curVal && oldVal != curVal) {
-        if (overlappingVue) {
-          // freeze the last overlapping item when changing to next overlapping item
-          // so it will be ignored when judging if overlapping
-          overlappingVue.freeze();
-          overlappingVue.overlapping = false;
-          overlappingVue.updateOverlap();
-        }
-        overlappingVue = this;
-        this.updateOverlap();
+  computed: {
+    marginStyle () {
+      const { dragging, replaceDirection, value, index } = this
+      const { currentIndex } = value
+      const verticalMarginStyle = {
+        marginTop: (index == 0 && index == currentIndex) ? (value.height + 'px') : null,
+        marginBottom: (index == currentIndex - 1) ? (value.height + 'px') : null
       }
+      const horizontalMarginStyle = {
+        marginLeft: (index == 0 && index == currentIndex) ? (value.width + 'px') : null,
+        marginRight: (index == currentIndex - 1) ? (value.width + 'px') : null
+      }
+      return !dragging ? replaceDirection === 'horizontal' ? horizontalMarginStyle : verticalMarginStyle : null
     },
+    rootStyle ()  {
+      const { dragging, position } = this
+
+      const draggingStyle = {
+        position: dragging ? 'absolute' : null,
+        top: (position.top + position.offsetY) + 'px',
+        left: (position.left + position.offsetX) + 'px'
+      }
+
+      return dragging ? draggingStyle : {}
+    }
+  },
+  watch: {
     value (curVal) {
-      const self = this;
-      const root = self.$el;
-      self.reversing = false;
+      const { replaceDirection } = this
+      const { activeInstance, currentIndex, status } = curVal
 
-      const { replaceDirection } = self;
-      const { offsetTop, offsetLeft, offsetWidth, offsetHeight } = root;
-      const { _start, _end, draggingItem, top, right, bottom, left, oldIndex } = curVal;
-
-      if (_end) {
-        self.reversing = true;
-
-        const isLastItem = !overlappingVue && self === draggingItem;
-        if (self.overlapping || isLastItem) {
-          const revertY = (!isLastItem && (!replaceDirection || replaceDirection === 'vertical')) ? (bottom - top) : 0;
-          const revertX = (!isLastItem && replaceDirection === 'horizontal') ? (right - left) : 0;
-          draggingItem.offsetY = offsetTop - revertY - draggingItem.startTop;
-          draggingItem.offsetX = offsetLeft - revertX - draggingItem.startLeft;
-
-          setTimeout(function () {
-            draggingItem.dragging = false;
-            self.hoveredMargin = null;
-            self.overlapping = false;
-            overlappingVue = null;
-            const oldIndex = curVal.oldIndex;
-            const newIndex = self.index - (self.index <= oldIndex ? 0 : 1);
-            if (oldIndex !== newIndex) {
-              self.$emit('sortend', {
-                oldIndex,
-                newIndex
-              });
-            }
-          }, 200);
-        }
-
-        return;
-      }
-
-      if (draggingItem === self) {
-        draggingItem.$nextTick(function () {
-          draggingItem.dragging = true;
-        });
-        const list = root.parentNode;
-        list.style.overflow = 'hidden';
-        const { scrollTop } = list;
-        const listHeight = list.offsetHeight;
-        if (top - scrollTop < 20) {
-          list.scrollTop -= 10;
-          draggingItem.startTop += list.scrollTop - scrollTop;
-        }
-        else if (bottom - scrollTop > listHeight - 20) {
-          list.scrollTop += 10;
-          draggingItem.startTop += list.scrollTop - scrollTop;
-        }
-        return
-      }
-
-      if (_start) {
-        const isNext = self.index === oldIndex + 1;
-        if (isNext) {
-          self.reversing = true;
-          self.overlapping = true;
-        }
-        return;
-      }
-
-      const boundLeft = offsetLeft;
-      const boundTop = offsetTop;
-      const boundRight = boundLeft + offsetWidth;
-      const boundBottom = boundTop + offsetHeight;
-
-      self.bound.top = boundTop;
-      self.bound.right = boundRight;
-      self.bound.bottom = boundBottom;
-      self.bound.left = boundLeft;
-
-
-
-      if (!self.frozen) {
-        const overlapping = self.judgeOverlap(curVal, {
-          top: boundTop,
-          right: boundRight,
-          bottom: boundBottom,
-          left: boundLeft
-        });
-
+      if (status == 'moving' && this !== activeInstance) {
+        const position = this.getPosition()
+        const overlapping = this.judgeOverlap(curVal, position, replaceDirection == 'horizontal' ? 'x' : 'y')
         if (overlapping) {
-          self.overlapping = overlapping;
+          let newIndex = overlapping == 'a' ? (this.index + 1) : this.index
+          if (newIndex == activeInstance.index + 1) {
+            newIndex --
+          }
+          if (currentIndex != newIndex) {
+            this.updateValue({
+              ...curVal,
+              currentIndex: newIndex
+            })
+          }
+        }
+      }
+
+      if (status == 'release') {
+        const position = activeInstance.position
+        activeInstance.reversing = true
+        if (currentIndex == this.index + 1) {
+          const { offsetTop, offsetLeft, offsetWidth, offsetHeight } = this.$el
+          const revertY = ((!replaceDirection || replaceDirection === 'vertical')) ? offsetHeight : 0
+          const revertX = (replaceDirection === 'horizontal') ? offsetWidth : 0
+
+          position.offsetY = offsetTop + revertY - activeInstance.position.top
+          position.offsetX = offsetLeft + revertX - activeInstance.position.left
+        }
+        else if (currentIndex == 0 && this.index == 0) {
+          if (
+            position.offsetY == -position.top &&
+            position.offsetX == -position.left
+        ) {
+            activeInstance.onTransEnd()
+          }
+          position.offsetY = -position.top
+          position.offsetX = -position.left
+        }
+      }
+
+      if (activeInstance === this) {
+        const { position, $el } = this
+        const list = $el.offsetParent
+        const { scrollTop, offsetHeight } = list
+        if (curVal.top - scrollTop < 20) {
+          list.scrollTop -= 5
+          position.top += list.scrollTop - scrollTop
+        } else if (curVal.bottom - scrollTop > offsetHeight - 20) {
+          list.scrollTop += 5
+          position.top += list.scrollTop - scrollTop
         }
       }
     }
   },
   methods: {
-    freeze (time) {
-      const self = this;
-      self.frozen = true;
-      setTimeout(function () {
-        self.frozen = false;
-      }, time || 300);
-    },
-    updateOverlap () {
-      const { top, right, bottom, left } = this.value;
-      const height = bottom - top;
-      const width = right - left;
+    onTransEnd () {
+      if (this.reversing) {
+        this.reversing = false
 
-      const { overlapping } = this;
-      const obj = {};
-      if (overlapping) {
-        if (!this.replaceDirection || this.replaceDirection === 'vertical') {
-          obj.top = height;
+        const { currentIndex } = this.value
+        const oldIndex = this.index
+        const newIndex = currentIndex - (currentIndex <= oldIndex ? 0 : 1)
+        console.log(oldIndex, newIndex)
+        if (oldIndex !== newIndex) {
+          this.$emit('sortend', {
+            oldIndex,
+            newIndex
+          })
         }
-        else if (this.replaceDirection === 'horizontal') {
-          obj.left = width;
-        }
-      }
-      this.hoveredMargin = obj;
+        this.updateValue({})
 
-      this.$emit('sort', {
-        newIndex: this.index,
-        oldIndex: this.value.oldIndex
-      });
-    },
-    judgeOverlap (rectArea_1, rectArea_2) {
-      const { top, right, bottom, left } = rectArea_2;
-      const targetArea = (bottom - top) * (right - left);
-      const crossArea = calcArea(rectArea_1, rectArea_2);
-      return crossArea / targetArea > 0.25;
-
-      function calcArea(rect1, rect2) {
-        const t1 = rect1.top, r1 = rect1.right, b1 = rect1.bottom, l1 = rect1.left;
-        const t2 = rect2.top, r2 = rect2.right, b2 = rect2.bottom, l2 = rect2.left;
-        const top = max(t1, t2);
-        const right = min(r1,r2);
-        const bottom = min(b1, b2);
-        const left = max(l1, l2);
-        const width = right - left;
-        const height = bottom - top;
-        if (width <= 0 || height <= 0) {
-          return 0;
-        }
-        else {
-          return width * height;
-        }
-
-        function min(arg1, arg2) {
-          return arg1 < arg2 ? arg1 : arg2;
-        }
-        function max(arg1, arg2) {
-          return arg1 > arg2 ? arg1 : arg2;
-        }
+        this.dragging = false
       }
     },
-    onMouseDown (e) {
-      const self = this;
-      const root = self.$el;
-      const { currentTarget } = e;
-      const scrollHeight = root.parentNode.scrollHeight;
-      self.start = true;
-      self.startX = e.pageX;
-      self.startY = e.pageY;
-      self.startLeft = currentTarget.offsetLeft;
-      self.startTop = currentTarget.offsetTop;
-      self.offsetX = 0;
-      self.offsetY = 0;
+    updateValue (data) {
+      this.$emit('input', data)
+    },
+    dragHandler () {
+      const { top, left } = this.getPosition()
+      this.dragging = true
+      this.position.top = top
+      this.position.left = left
+      this.scrollHeight = this.$el.offsetParent.scrollHeight
+      this.updateValue({
+        status: 'start',
+        activeInstance: this,
+        currentIndex: this.index,
+        ...this.getPosition()
+      })
+    },
+    moveHandler ({ offsetX, offsetY }) {
+      this.moveLockCount --
+      const { dragDirection } = this
+      const position = this.getPosition()
+      this.position.offsetX = (!dragDirection || dragDirection == 'horizontal') ? offsetX : 0
+      this.position.offsetY = (!dragDirection || dragDirection == 'vertical') ? offsetY : 0
 
-
-      self.clickTimer = setTimeout(function () {
-        self.$el.__preventClick = 1;
-      }, 200);
-
-      function getMouseEventParams(e) {
-        const { pageX, pageY } = e;
-        const { startX, startY } = self;
-        const offsetX = pageX - startX;
-        const offsetY = pageY - startY;
-        const root = self.$el;
-        const { offsetWidth, offsetHeight } = root;
-        const left = self.startLeft + self.offsetX;
-        const top = self.startTop + self.offsetY;
-        const right = left + offsetWidth;
-        const bottom = top + offsetHeight;
-
-        return { offsetX, offsetY, top, right, bottom, left };
+      if (this.position.top + this.position.offsetY > this.scrollHeight - position.height) {
+        this.position.offsetY = this.scrollHeight - position.height - this.position.top + 1
       }
-      const onMouseMove = function(e) {
-        let { offsetX, offsetY, top, right, left, bottom } = getMouseEventParams(e);
+      else if (this.position.top + this.position.offsetY < 0) {
+        this.position.offsetY = - this.position.top
+      }
 
-        const h = bottom - top;
+      if (this.moveLockCount < 0) {
+        this.updateValue({
+          ...this.value,
+          status: 'moving',
+          activeInstance: this,
+          ...this.getPosition()
+        })
+      }
+    },
+    releaseHandler () {
+      this.moveLockCount = 5
+      this.$emit('input', {
+        ...this.value,
+        status: 'release',
+        activeInstance: this,
+        ...this.getPosition()
+      })
+    },
+    startFn (e) {
+      const { type } = e || {}
+      const isTouch = type === 'touchstart'
 
-        if (self.startTop + offsetY >= scrollHeight - h) {
-          bottom = scrollHeight;
-          top = bottom - h;
-          offsetY = scrollHeight - h - self.startTop;
+      let disabled = this.dragHandler(e)
+
+      if (!disabled) {
+        e.preventDefault()
+        const { dragData } = this
+        const target = e.touches && e.touches[0] || e
+        dragData.startX = target.pageX
+        dragData.startY = target.pageY
+        dragData.pageX = target.pageX
+        dragData.pageY = target.pageY
+        window.addEventListener(isTouch ? 'touchmove' : 'mousemove', this.moveFn)
+        window.addEventListener(isTouch ? 'touchend' : 'mouseup', this.releaseFn)
+      }
+    },
+    moveFn (e) {
+      const target = e.touches && e.touches[0] || e
+      const { dragData } = this
+
+      dragData.pageX = target.pageX
+      dragData.pageY = target.pageY
+      this.moveHandler({
+        offsetX: target.pageX - dragData.startX,
+        offsetY: target.pageY - dragData.startY
+      })
+    },
+    releaseFn (e) {
+      const { type } = e || {}
+      const isTouch = type === 'touchend'
+
+      window.removeEventListener(isTouch ? 'touchmove' : 'mousemove', this.moveFn)
+      window.removeEventListener(isTouch ? 'touchend' : 'mouseup', this.releaseFn)
+      const target = e.touches && e.touches[0] || e
+      const { dragData } = this
+
+      const pageX = target.pageX || dragData.pageX
+      const pageY = target.pageY || dragData.pageY
+      this.releaseHandler({
+        offsetX: pageX - dragData.startX,
+        offsetY: pageY - dragData.startY
+      })
+    },
+    getPosition () {
+      const { offsetTop, offsetLeft, offsetWidth, offsetHeight } = this.$el
+      return {
+        top: offsetTop,
+        right: offsetLeft + offsetWidth,
+        bottom: offsetTop + offsetHeight,
+        left: offsetLeft,
+        height: offsetHeight,
+        width: offsetWidth
+      }
+    },
+    judgeOverlap (rectArea1, rectArea2, direction) {
+      const xHalf1 = getHalf(rectArea1.left, rectArea1.right)
+      const yHalf1 = getHalf(rectArea1.top, rectArea1.bottom)
+      const xHalf2 = getHalf(rectArea2.left, rectArea2.right)
+      const yHalf2 = getHalf(rectArea2.top, rectArea2.bottom)
+
+      if (direction == 'x') {
+        if (xHalf1 >= rectArea2.left && xHalf1 <= xHalf2) {
+          return 'b'
         }
-        else if (self.startTop + offsetY <= 0) {
-          bottom = h;
-          top = 0;
-          offsetY = -self.startTop;
+        else if (xHalf1 > xHalf2 && xHalf1 <= rectArea2.right) {
+          return 'a'
         }
+      }
+      else {
+        if (yHalf1 >= rectArea2.top && yHalf1 <= yHalf2) {
+          return 'b'
+        }
+        else if (yHalf1 > yHalf2 && yHalf1 <= rectArea2.bottom) {
+          return 'a'
+        }
+      }
+      return false
 
-        self.offsetX = self.dragDirection === 'vertical' ? 0 : offsetX;
-        self.offsetY = self.dragDirection === 'horizontal' ? 0 : offsetY;
-
-        clearTimeout(self.inputTimer);
-        self.inputTimer = setTimeout(function () {
-          self.$emit('input', {
-            _start: self.start,
-            draggingItem: self,
-            top, right, bottom, left,
-            oldIndex: self.index
-          });
-          if (self.start) {
-            self.start = false;
-          }
-        }, 15);
-      };
-      const mouseupHandler = function (e) {
-        clearTimeout(self.inputTimer);
-        clearTimeout(self.clickTimer);
-
-        const { top, right, left, bottom } = getMouseEventParams(e);
-
-        self.offsetY = 0;
-        self.offsetX = 0;
-        root.parentNode.style.overflow = '';
-
-        window.removeEventListener('mousemove', onMouseMove);
-        window.removeEventListener('mouseup', mouseupHandler);
-        self.$emit('input', {
-          _end: true,
-          draggingItem: self,
-          top, right, bottom, left,
-          oldIndex: self.index
-        });
-      };
-
-
-      onMouseMove(e);
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('mouseup', mouseupHandler);
+      function getHalf(start, end) {
+        return start + (end - start) / 2
+      }
     }
   }
 }
@@ -326,6 +284,8 @@ export default {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+}
+.drag-sortable.anim {
   transition: margin 0.2s linear;
 }
 .drag-sortable.reversing {
