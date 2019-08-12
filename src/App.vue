@@ -3,7 +3,7 @@
     <div class="pannel">
       <h1>Free drag & Vertical replace(Default mode)</h1>
       <div class="list">
-        <sortable class="item" v-for="(item, index) in listData" v-model="dragData1" :key="item" :index="index" @sortend="sortend($event, listData)">
+        <sortable class="item" v-for="(item, index) in listData" v-model="dragData1" @real-click="alert" :key="item" :index="index" @sortend="sortend($event, listData)">
           Item {{ item }}
         </sortable>
       </div>
@@ -11,7 +11,7 @@
     <div class="pannel">
       <h1>Vertical drag & Vertical replace</h1>
       <div class="list">
-        <sortable class="item" v-for="(item, index) in listData" v-model="dragData2" @click.native="alert" :key="item" :index="index" @sortend="sortend($event, listData)" drag-direction="vertical">
+        <sortable class="item" v-for="(item, index) in listData" v-model="dragData2" @real-click="alert" :key="item" :index="index" @sortend="sortend($event, listData)" drag-direction="vertical">
           Item {{ item }}
         </sortable>
       </div>
