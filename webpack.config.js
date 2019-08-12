@@ -1,18 +1,18 @@
-var path = require('path')
-var webpack = require('webpack')
+const path = require('path')
+const webpack = require('webpack')
 
-var ENV_PROD = process.env.NODE_ENV === 'production';
-var ENV_DEMO = process.env.NODE_ENV === 'demo';
+const ENV_PROD = process.env.NODE_ENV === 'production'
+const ENV_DEMO = process.env.NODE_ENV === 'demo'
 
-var output = {
+const output = {
   path: path.resolve(__dirname, './dist'),
   publicPath: '/dist/',
   filename: 'build.js'
-};
+}
 if (ENV_PROD) {
-  output.filename = 'vue-drag-sortable.js';
-  output.library = 'DragSortable';
-  output.libraryTarget = 'umd';
+  output.filename = 'vue-drag-sortable.js'
+  output.library = 'DragSortable'
+  output.libraryTarget = 'umd'
 }
 
 module.exports = {
@@ -28,12 +28,7 @@ module.exports = {
         ],
       },      {
         test: /\.vue$/,
-        loader: 'vue-loader',
-        options: {
-          loaders: {
-          }
-          // other vue-loader options go here
-        }
+        loader: 'vue-loader'
       },
       {
         test: /\.js$/,

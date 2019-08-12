@@ -43,29 +43,24 @@ export default {
   },
   methods: {
     click (e) {
-      // __preventClick will be set when then click item is dragging
-      // so you can prevent the click action
-      if (e.currentTarget.__preventClick) {
-        delete e.currentTarget.__preventClick;
-        return;
-      }
+      // Todo
     },
     sort (e) {
-      const { oldIndex, newIndex } = e;
-      console.log(oldIndex, newIndex);
+      const { oldIndex, newIndex } = e
+      console.log(oldIndex, newIndex)
     },
     sortend (e, list) {
-      const { oldIndex, newIndex } = e;
-      this.rearrange(list, oldIndex, newIndex);
+      const { oldIndex, newIndex } = e
+      this.rearrange(list, oldIndex, newIndex)
     },
     rearrange (array, oldIndex, newIndex) {
       if (oldIndex > newIndex) {
-        array.splice(newIndex, 0, array[oldIndex]);
-        array.splice(oldIndex + 1, 1);
+        array.splice(newIndex, 0, array[oldIndex])
+        array.splice(oldIndex + 1, 1)
       }
       else {
-        array.splice(newIndex + 1, 0, array[oldIndex]);
-        array.splice(oldIndex, 1);
+        array.splice(newIndex + 1, 0, array[oldIndex])
+        array.splice(oldIndex, 1)
       }
     }
   }
